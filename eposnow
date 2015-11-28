@@ -81,11 +81,11 @@ class EposNowCLI(object):
                     output_table.add_row([popupnote['PopupNoteID'], popupnote['ShortDesc'], popupnote['Description']])
                     rowcount += 1
             elif args.products is True:
-                output_table=PrettyTable(['Id', 'Name', 'Price'])
+                output_table=PrettyTable(['Id', 'CategoryID', 'Name', 'Price'])
                 products = self.api_get('/Product')
                 for product in products:
                     if product['SellOnTill'] is True or args.show_disabled is True:
-                        output_table.add_row([product['ProductID'], product['Name'], product['SalePrice']])
+                        output_table.add_row([product['ProductID'], product['CategoryID'], product['Name'], product['SalePrice']])
                         rowcount += 1
             else:
                 print "you need to specify something to list"
