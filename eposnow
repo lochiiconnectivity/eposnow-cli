@@ -1,8 +1,9 @@
 #!/usr/bin/env python
+# vim: set ts=4 sw=4 expandtab:
 
 #EposNow CLI
 
-import argparse, ConfigParser, json, requests
+import argparse, ConfigParser, json, sys, requests
 from prettytable import NONE, PrettyTable
 
 class EposNowCLI(object):
@@ -20,19 +21,76 @@ class EposNowCLI(object):
         # Parse command line arguments
         parser = argparse.ArgumentParser(description='EposNow CLI')
         parser.add_argument('-d', '--debug', help='provide debugging output', action='store_true')
-        parser.add_argument('-l', '--product-list', help='list all products', action='store_true')
-        parser.add_argument('-s', '--show-disabled', help='show products disabled on till', action='store_true')
+        parser.add_argument('-c', '--categories', help='work with categories', action='store_true')
+        parser.add_argument('-e', '--choices', help='work with multiple choices', action='store_true')
+        parser.add_argument('-g', '--choicegroups', help='work with multiple choice groups', action='store_true')
+        parser.add_argument('-i', '--choiceitems', help='work with multiple choice group items', action='store_true')
+        parser.add_argument('-l', '--list', help='list objects', action='store_true')
+        parser.add_argument('-n', '--notes', help='work with notes', action='store_true')
+        parser.add_argument('-o', '--options', help='work with options', action='store_true')
+        parser.add_argument('-p', '--products', help='work with products', action='store_true')
+        parser.add_argument('-s', '--show-disabled', help='show objects disabled on till', action='store_true')
+        parser.add_argument('-u', '--popupnotes', help='work with popup notes', action='store_true')
         args   = parser.parse_args()
 
-        # Product list
-        if args.product_list is True:
-            products = self.api_get('/Product')
-            output_table=PrettyTable(['Name', 'Price'])
+        # List objects
+        if args.list is True:
+            output_table=PrettyTable()
             rowcount = 1
-            for product in products:
-                if product['SellOnTill'] is True or args.show_disabled is True:
-                    output_table.add_row([product['Name'], product['SalePrice']])
+            if args.categories is True:
+                output_table=PrettyTable(['Id', 'Name'])
+                categories = self.api_get('/Category')
+                for category in categories:
+                    if category['ShowOnTill'] is True or args.show_disabled is True:
+                        output_table.add_row([category['CategoryID'], category['Name']])
+                        rowcount += 1
+            elif args.choices is True:
+                output_table=PrettyTable(['Id', 'ProductID', 'GroupID'])
+                choices = self.api_get('/MultipleChoiceProduct')
+                for choice in choices:
+                    output_table.add_row([choice['MultipleChoiceProductID'], choice['ProductID'], choice['MultipleChoiceProductGroupID']])
                     rowcount += 1
+            elif args.choicegroups is True:
+                output_table=PrettyTable(['Id', 'Name'])
+                choicegroups = self.api_get('/MultipleChoiceProductGroup')
+                for choicegroup in choicegroups:
+                    output_table.add_row([choicegroup['MultipleChoiceProductGroupID'], choicegroup['Name']])
+                    rowcount += 1
+            elif args.choiceitems is True:
+                output_table=PrettyTable(['Id', 'ProductID', 'GroupID'])
+                choiceitems = self.api_get('/MultipleChoiceProductGroupItem')
+                for choiceitem in choiceitems:
+                    output_table.add_row([choiceitem['MultipleChoiceProductGroupItemID'], choiceitem['ProductID'], choiceitem['MultipleChoiceProductGroupID']])
+                    rowcount += 1
+            elif args.notes is True:
+                output_table=PrettyTable(['Id', 'Note'])
+                notes = self.api_get('/MultipleChoiceNote')
+                for note in notes:
+                    output_table.add_row([note['MultipleChoiceNoteID'], note['Name']])
+                    rowcount += 1
+            elif args.options is True:
+                output_table=PrettyTable(['Id', 'Message', 'NoteID'])
+                options = self.api_get('/MultipleChoiceOption')
+                for option in options:
+                    output_table.add_row([option['MultipleChoiceOptionID'], option['Message'], option['NoteID']])
+                    rowcount += 1
+            elif args.popupnotes is True:
+                output_table=PrettyTable(['Id', 'Message', 'NoteID'])
+                popupnotes = self.api_get('/PopupNote')
+                for popupnote in popupnotes:
+                    output_table.add_row([popupnote['PopupNoteID'], popupnote['ShortDesc'], popupnote['Description']])
+                    rowcount += 1
+            elif args.products is True:
+                output_table=PrettyTable(['Id', 'Name', 'Price'])
+                products = self.api_get('/Product')
+                for product in products:
+                    if product['SellOnTill'] is True or args.show_disabled is True:
+                        output_table.add_row([product['ProductID'], product['Name'], product['SalePrice']])
+                        rowcount += 1
+            else:
+                print "you need to specify something to list"
+                sys.exit(-1)
+            output_table.align='l'
             print output_table
             print " %d rows in table" % rowcount
 
