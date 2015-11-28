@@ -1,0 +1,61 @@
+#!/usr/bin/env python
+
+#EposNow CLI
+
+import argparse, ConfigParser, json, requests
+from prettytable import NONE, PrettyTable
+
+class EposNowCLI(object):
+
+    def main(self):
+
+        #Config
+        config  = ConfigParser.ConfigParser()
+        config.read('eposnow.cfg')
+
+        self.baseurl = config.get('api', 'baseurl')
+        self.apikey = config.get('auth', 'apikey')
+        self.secretkey = config.get('auth', 'secretkey')
+
+        # Parse command line arguments
+        parser = argparse.ArgumentParser(description='EposNow CLI')
+        parser.add_argument('-d', '--debug', help='provide debugging output', action='store_true')
+        parser.add_argument('-l', '--product-list', help='list all products', action='store_true')
+        parser.add_argument('-s', '--show-disabled', help='show products disabled on till', action='store_true')
+        args   = parser.parse_args()
+
+        # Product list
+        if args.product_list is True:
+            products = self.api_get('/Product')
+            output_table=PrettyTable(['Name', 'Price'])
+            rowcount = 1
+            for product in products:
+                if product['SellOnTill'] is True or args.show_disabled is True:
+                    output_table.add_row([product['Name'], product['SalePrice']])
+                    rowcount += 1
+            print output_table
+            print " %d rows in table" % rowcount
+
+    def api_get(self, relative_url):
+        page = 1
+        results = self.api_get_page(relative_url)
+        last_results = results
+        while (len(last_results) == 200):
+            page +=1
+            paginated_url = relative_url + '?page=' + str(page)
+            last_results = self.api_get_page(paginated_url)
+            results.extend(last_results) 
+        return results
+
+    def api_get_page(self, relative_url):
+        url = self.baseurl + relative_url
+        r = requests.get(url, auth=(self.apikey, self.secretkey))
+        if r.status_code == 200:
+            return r.json()
+        else:
+            raise ValueError("Bad status %d from api at %s" % (r.status_code, relative_url))
+
+
+if __name__ == "__main__":
+    EposNowCLI().main()
+
